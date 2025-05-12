@@ -65,8 +65,8 @@ def update(xarr,yarr,pxarr,pyarr):
 		pos=np.random.randint(N)
 
 		theta=np.random.random()*2*pi
-		dx=math.cos(theta)
-		dy=math.sin(theta)
+		dx=math.cos(theta)*r
+		dy=math.sin(theta)*r
 
 		xnew=(xarr[pos]+dx)%L
 		ynew=(yarr[pos]+dy)%L
@@ -136,7 +136,7 @@ def getss_data():
 	garr=np.zeros(1000)
 	xarr,yarr,pxarr,pyarr=init_config()
 		
-	for i in range(500):
+	for i in range(100000):
 		update(xarr,yarr,pxarr,pyarr)
 	for i in range(1000000):
 		update(xarr,yarr,pxarr,pyarr)

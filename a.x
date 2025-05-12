@@ -1,0 +1,11 @@
+python3 code3.py 10.0 500 0.12 1 &                                                                   
+python3 code3.py 10.0 500 0.13 1 &                                                                   
+python3 code3.py 10.0 500 0.14 1 &                                                                   
+python3 code3.py 10.0 500 0.15 1 &                                                                   
+python3 code3.py 10.0 500 0.16 1 &                                                                   
+python3 code3.py 10.0 500 0.17 1 &                                                                   
+python3 code3.py 10.0 500 0.18 1 &                                                                   
+python3 code3.py 10.0 500 0.19 1 &                                                                   
+python3 code3.py 10.0 500 0.2 1 &                                                                   
+python3 code3.py 10.0 500 0.21 1 &                                                                   
+python3 code3.py 10.0 500 0.215 1 &                                                                   
