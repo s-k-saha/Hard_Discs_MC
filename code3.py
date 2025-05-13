@@ -76,7 +76,7 @@ nbrarr=nbr2D()
 
 @njit
 def build_cell_list(xarr,yarr):
-	cell_list=np.ones((Ncells,5),dtype=np.int32)*-1
+	cell_list=np.ones((Ncells,4),dtype=np.int32)*-1
 	#end=np.zeros(Ncells,dtype=np.int32) #index of the first empty position in the i-th cell  
 	which_cell=np.zeros(N,dtype=np.int32) #index of the cell the i-th particle belongs to
 	
@@ -84,7 +84,7 @@ def build_cell_list(xarr,yarr):
 		x,y=int(xarr[i]/sigma),int(yarr[i]/sigma)
 		pos=(y*Ncell+x)
 		which_cell[i]=pos
-		for _ in range(5):
+		for _ in range(4):
 		    if cell_list[pos][_]==-1:
 		        cell_list[pos][_]=i
 		        break
@@ -96,10 +96,10 @@ def build_cell_list(xarr,yarr):
 
 @njit
 def isvalid(xarr,yarr,pos,xnew,ynew,cell_list,which_cell):
-	cellno=which_cell[pos]
+	cellno=int(ynew/sigma)*Ncell+int(xnew/sigma)
 	
 	for i in range(9):
-		for j in range(5):
+		for j in range(4):
 			k=cell_list[nbrarr[cellno][i]][j]
 			dx=abs(xnew-xarr[k])
 			dy=abs(ynew-yarr[k])
@@ -114,14 +114,14 @@ def isvalid(xarr,yarr,pos,xnew,ynew,cell_list,which_cell):
 
 @njit
 def remove_particle(pos,cell_list,which_cell):
-    for j in range(5):
+    for j in range(4):
         if cell_list[which_cell[pos]][j]==pos:
             cell_list[which_cell[pos]][j]=-1
             return
 
 @njit
 def add_particle(pos,cell_list,which_cell):
-    for j in range(5):
+    for j in range(4):
         if cell_list[which_cell[pos]][j]==-1:
             cell_list[which_cell[pos]][j]=pos
             return

@@ -23,12 +23,6 @@ rho=N/L/L
 eta=rho*pi*r*r
 
 
-#cell list specific parameters
-Ncell= int(L/r/2) #number of cells along a linear dimension
-Ns=Ncell
-sigma= L/Ncell #cell edge length
-Ncells=Ncell*Ncell
-
 
 @njit
 def init_config(): #cubical close packing (max possible eta ~ 0.785398163397448)
@@ -52,94 +46,32 @@ def init_config(): #cubical close packing (max possible eta ~ 0.785398163397448)
 			count+=1
 		y+=2*r
 
-
 @njit
-def nbr2D():
-    nbrarr = np.zeros((Ncells, 9), dtype=np.int32)
-    for i in range(Ncells):
-        ix = i % Ncell
-        iy = i // Ncell
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                jx = (ix + dx) % Ncell
-                jy = (iy + dy) % Ncell
-                j = jy * Ncell + jx
-                idx = (dy + 1) * 3 + (dx + 1)  # maps (dx,dy) to [0..8]
-                nbrarr[i, idx] = j
-    return nbrarr
-
-
-nbrarr=nbr2D()
-	
-
-
-
-@njit
-def build_cell_list(xarr,yarr):
-	cell_list=np.ones((Ncells,4),dtype=np.int32)*-1
-	#end=np.zeros(Ncells,dtype=np.int32) #index of the first empty position in the i-th cell  
-	which_cell=np.zeros(N,dtype=np.int32) #index of the cell the i-th particle belongs to
-	
+def isvalid(xarr,yarr,pos,xnew,ynew):
 	for i in range(N):
-		x,y=int(xarr[i]/sigma),int(yarr[i]/sigma)
-		pos=(y*Ncell+x)
-		which_cell[i]=pos
-		for _ in range(4):
-		    if cell_list[pos][_]==-1:
-		        cell_list[pos][_]=i
-		        break
-		#end[pos]+=1 
-	return cell_list,which_cell
+		dx=abs(xnew-xarr[i])
+		dy=abs(ynew-yarr[i])
 		
-	
-
-
-@njit
-def isvalid(xarr,yarr,pos,xnew,ynew,cell_list,which_cell):
-	cellno=int(ynew/sigma)*Ncell+int(xnew/sigma)
-	
-	for i in range(9):
-		for j in range(4):
-			k=cell_list[nbrarr[cellno][i]][j]
-			dx=abs(xnew-xarr[k])
-			dy=abs(ynew-yarr[k])
-			
-			dx=min(dx,L-dx)
-			dy=min(dy,L-dy)
-			
-			if k!=pos and dx*dx+dy*dy < 4*r*r:
-				return False
+		dx=min(dx,L-dx)
+		dy=min(dy,L-dy)
+		
+		if i!=pos and dx*dx+dy*dy < 4*r*r:
+			return False
 	return True
 
-
 @njit
-def remove_particle(pos,cell_list,which_cell):
-    for j in range(4):
-        if cell_list[which_cell[pos]][j]==pos:
-            cell_list[which_cell[pos]][j]=-1
-            return
-
-@njit
-def add_particle(pos,cell_list,which_cell):
-    for j in range(4):
-        if cell_list[which_cell[pos]][j]==-1:
-            cell_list[which_cell[pos]][j]=pos
-            return
-
-
-@njit
-def update(xarr,yarr,pxarr,pyarr,cell_list,which_cell):
+def update(xarr,yarr,pxarr,pyarr):
 	for _ in range(N):
 		pos=np.random.randint(N)
 
 		theta=np.random.random()*2*pi
-		dx=math.cos(theta)*r/2
-		dy=math.sin(theta)*r/2
+		dx=math.cos(theta)*r
+		dy=math.sin(theta)*r
 
 		xnew=(xarr[pos]+dx)%L
 		ynew=(yarr[pos]+dy)%L
 
-		if isvalid(xarr,yarr,pos,xnew,ynew,cell_list,which_cell):
+		if isvalid(xarr,yarr,pos,xnew,ynew):
 			thetap=np.random.random()*2*pi
 
 			dpx=math.cos(thetap)
@@ -153,14 +85,6 @@ def update(xarr,yarr,pxarr,pyarr,cell_list,which_cell):
 				yarr[pos]=ynew
 				pxarr[pos]+=dpx
 				pyarr[pos]+=dpy
-				
-				
-				remove_particle(pos,cell_list,which_cell)
-				x,y=int(xnew/sigma),int(ynew/sigma)
-				newpos=(y*Ncell+x)
-				
-				which_cell[pos]=newpos
-				add_particle(pos,cell_list,which_cell)
 
 @njit
 def Eng(pxarr,pyarr):
@@ -198,10 +122,8 @@ def get_data():
 
 	for _ in range(Nens):
 		xarr,yarr,pxarr,pyarr=init_config()
-		cell_list,which_cell=build_cell_list(xarr,yarr)
-		
 		for i in range(Nt):
-			update(xarr,yarr,pxarr,pyarr,cell_list,which_cell)
+			update(xarr,yarr,pxarr,pyarr)
 
 
 			Engarr[i]+=Eng(pxarr,pyarr)
@@ -213,14 +135,13 @@ def get_data():
 def getss_data():
 	garr=np.zeros(1000)
 	xarr,yarr,pxarr,pyarr=init_config()
-	cell_list,which_cell=build_cell_list(xarr,yarr)
-	
+		
+	for i in range(100000):
+		update(xarr,yarr,pxarr,pyarr)
 	for i in range(1000000):
-		update(xarr,yarr,pxarr,pyarr,cell_list,which_cell)
-	for i in range(4000000):
-		update(xarr,yarr,pxarr,pyarr,cell_list,which_cell)
+		update(xarr,yarr,pxarr,pyarr)
 		gr(xarr,yarr,garr)
-	return garr/4000000
+	return garr/1000000
 
 @njit
 def time_state():
@@ -228,9 +149,21 @@ def time_state():
 	for _ in range(Nt):
 		update(xarr,yarr,pxarr,pyarr)
 	return xarr,yarr
+@njit
+def run_t():
+	xarr,yarr,pxarr,pyarr=init_config()
+	for i in range(100000):
+		update(xarr,yarr,pxarr,pyarr)
+	return xarr,yarr
 
-
-	
+@njit
+def check_config(xarr,yarr):
+	count_False=0
+	for i in range(N):
+		for j in range(N):
+			if i!=j and dist(xarr[i],xarr[j],yarr[i],yarr[j])< 4*r*r:
+				count_False+=1
+	return count_False		
 	
 	
 
@@ -252,13 +185,14 @@ def view_config(xarr,yarr):
 
 if __name__=="__main__":
 	print(f"eta={eta}")
-	ti=time.time()
-	garr=getss_data()
-	tf=time.time()
 	
-	np.savetxt(f"gr2L{L}N{N}r{r}T{T}.dat",garr)
-	with open(f"gr2L{L}N{N}r{r}T{T}.dat","a") as fl:
-		fl.write(f"L={L},N={N},T={T},r={r},eta={eta},t={tf-ti}s")
+	ti=time.time()
+	x,y=run_t()
+	tf=time.time()
+	print(f"{tf-ti} s")
+	view_config(x,y)
+	print(check_config(x,y))
+
 
 	#Engarr,x2arr=get_data()
 	#data=np.concatenate((Engarr.reshape((-1,1)),x2arr.reshape((-1,1))),axis=1)

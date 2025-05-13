@@ -109,6 +109,8 @@ def isvalid(xarr,yarr,pos,xnew,ynew,cell_list,which_cell):
 			
 			if k!=pos and dx*dx+dy*dy < 4*r*r:
 				return False
+	
+	
 	return True
 
 
@@ -223,15 +225,29 @@ def getss_data():
 	return garr/4000000
 
 @njit
+def run_t():
+	xarr,yarr,pxarr,pyarr=init_config()
+	cell_list,which_cell=build_cell_list(xarr,yarr)
+	for i in range(100000):
+		update(xarr,yarr,pxarr,pyarr,cell_list,which_cell)
+	return xarr,yarr
+		
+
+@njit
 def time_state():
 	xarr,yarr,pxarr,pyarr=init_config()
 	for _ in range(Nt):
 		update(xarr,yarr,pxarr,pyarr)
 	return xarr,yarr
 
-
-	
-	
+@njit
+def check_config(xarr,yarr):
+	count_False=0
+	for i in range(N):
+		for j in range(N):
+			if i!=j and dist(xarr[i],xarr[j],yarr[i],yarr[j])< 4*r*r:
+				count_False+=1
+	return count_False		
 	
 
 def view_config(xarr,yarr):
@@ -252,13 +268,13 @@ def view_config(xarr,yarr):
 
 if __name__=="__main__":
 	print(f"eta={eta}")
-	ti=time.time()
-	garr=getss_data()
-	tf=time.time()
 	
-	np.savetxt(f"gr2L{L}N{N}r{r}T{T}.dat",garr)
-	with open(f"gr2L{L}N{N}r{r}T{T}.dat","a") as fl:
-		fl.write(f"L={L},N={N},T={T},r={r},eta={eta},t={tf-ti}s")
+	ti=time.time()
+	x,y=run_t()
+	tf=time.time()
+	print(f"{tf-ti} s")
+	view_config(x,y)
+	print(check_config(x,y))
 
 	#Engarr,x2arr=get_data()
 	#data=np.concatenate((Engarr.reshape((-1,1)),x2arr.reshape((-1,1))),axis=1)
